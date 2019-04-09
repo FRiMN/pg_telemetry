@@ -15,7 +15,7 @@
 Шаги сборщиков метрик:
 
  	1. Получение данных из таблицы или внешней программы (~~*[Стратегия](https://refactoring.guru/ru/design-patterns/strategy)*~~)
- 	2. Обогащение мета-информацией
+ 	2. Обогащение мета-информацией (лучше снаружи)
 
 Мета-информация:
 
@@ -62,6 +62,23 @@ ORDER BY (path, ts)
 ## Снимаемые метрики
 
 Обязательно включить *pg_stat_statements*.[^y1]
+
+### Хэш настроек
+
+```sql
+SELECT
+    md5(
+        CAST(array_agg(
+	        CAST(f.setting as text) order by f.name
+	    ) as text)
+    )
+FROM
+    pg_settings f
+WHERE
+    name != 'application_name';
+```
+
+
 
 ### Время отклика
 
