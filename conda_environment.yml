@@ -1,0 +1,8 @@
+name: pg_telemetry
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7.3
+  - psycopg2=2.7.6.1
+  - python-dotenv=0.10.1=py_0
