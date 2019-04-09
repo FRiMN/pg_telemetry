@@ -21,6 +21,20 @@ databases = (
 )
 
 
+database_settings_hash_sql = '''
+SELECT
+    md5(
+        CAST(array_agg(
+	        CAST(f.setting as text) order by f.name
+	    ) as text)
+    )
+FROM
+    pg_settings f
+WHERE
+    name != 'application_name';
+'''
+
+
 sqls = (
     ('pg_database_size', '''
 -- Database structure checklist.
@@ -73,7 +87,9 @@ if __name__ == '__main__':
         conn = psycopg2.connect(**database)
         cur = conn.cursor()
 
-        database_settings_hash = None
+        cur.execute(database_settings_hash_sql)
+        database_settings_hash = cur.fetchone()[0]
+        print(database_settings_hash)
 
         for store_table, sql in sqls:
             collector = SqlCollector(sql, cur, database['dbname'])
