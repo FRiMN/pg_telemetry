@@ -10,7 +10,12 @@ class Collector(object):
         raise NotImplementedError
 
     def __repr__(self):
-        return '<{}: {}={}>'.format(self.__class__.__name__, self.column_name, self.value)
+        return '<{}: {}={}{}>'.format(
+            self.__class__.__name__,
+            self.column_name,
+            type(self.value),
+            self.value
+        )
 
 
 class TsCollector(Collector):
@@ -18,7 +23,7 @@ class TsCollector(Collector):
     column_name = 'ts'
 
     def collect(self):
-        return datetime.now()
+        self.value = datetime.now()
 
 
 class DtCollector(Collector):
@@ -26,7 +31,31 @@ class DtCollector(Collector):
     column_name = 'dt'
 
     def collect(self):
-        return date.today()
+        self.value = date.today()
+
+
+class DumbCollector(Collector):
+    def __init__(self, value):
+        self.value = value
+
+    def collect(self):
+        pass
+
+
+class DBNameCollector(DumbCollector):
+    column_name = 'dbname'
+
+
+class DBPortCollector(DumbCollector):
+    column_name = 'dbport'
+
+
+class DBHostCollector(DumbCollector):
+    column_name = 'dbhost'
+
+
+class DBVersionCollector(DumbCollector):
+    column_name = 'dbversion'
 
 
 class SqlCollector(Collector):
@@ -38,6 +67,7 @@ class SqlCollector(Collector):
 
     def collect(self):
         if self.sql and self.cursor:
-            self.cursor.execute(self.sql, (self.dbname,))
+            sql = self.sql.replace('$1', '%s')
+            self.cursor.execute(sql, (self.dbname,))
             self.value = self.cursor.fetchone()[0]
-            return self.value
+            # return self.value
