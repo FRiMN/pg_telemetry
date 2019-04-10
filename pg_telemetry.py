@@ -1,11 +1,11 @@
-import os
-from datetime import datetime
 from os import environ as env
 import os
 
 import psycopg2
 from dotenv import load_dotenv
 
+from collectors import SqlCollector
+from sql_files import SqlFiles
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
@@ -21,94 +21,23 @@ databases = (
 )
 
 
-database_settings_hash_sql = '''
-SELECT
-    md5(
-        CAST(array_agg(
-	        CAST(f.setting as text) order by f.name
-	    ) as text)
-    )
-FROM
-    pg_settings f
-WHERE
-    name != 'application_name';
-'''
-
-
-sqls = (
-    ('pg_database_size', '''
--- Database structure checklist.
--- Show databases common view 
-SELECT
-  pg_database_size(%s)  -- in bytes
-FROM pg_stat_database;
-    '''),
-)
-
-
-class Collector(object):
-    ts = None
-    value = None
-
-    def collect(self):
-        raise NotImplementedError
-
-
-class SqlCollector(Collector):
-    def __init__(self, sql, cursor, dbname):
-        self.sql = sql
-        self.cursor = cursor
-        self.dbname = dbname
-
-    def collect(self):
-        if self.sql and self.cursor:
-            self.cursor.execute(self.sql, (self.dbname,))
-            self.ts = datetime.now()
-            self.value = self.cursor.fetchone()[0]
-            return self.value
-
-
-class DataPacket(object):
-    def __init__(self, value, store_table, ts, dbname, dbport, dbhost, dbsettings, dbversion):
-        self.value = value
-        self.store_table = store_table
-        self.ts = ts
-        self.dbname = dbname
-        self.dbport = dbport
-        self.dbhost = dbhost
-        self.dbsettings = dbsettings
-        self.dbversion = dbversion
-
-
 if __name__ == '__main__':
+    sql_files = SqlFiles(basedir)
+    sqls = sql_files.get_sqls()
+
+    # print([sql.column_name for sql in sqls])
+
     for database in databases:
-        packets = []
+        packet = []
 
         conn = psycopg2.connect(**database)
         cur = conn.cursor()
 
-        cur.execute(database_settings_hash_sql)
-        database_settings_hash = cur.fetchone()[0]
-        print(database_settings_hash)
-
-        for store_table, sql in sqls:
+        for sql in sqls:
             collector = SqlCollector(sql, cur, database['dbname'])
-            ret = collector.collect()
-            print(ret, collector.sql)
-
-            packet = DataPacket(
-                collector.value,
-                store_table,
-                collector.ts,
-                database['dbname'],
-                database['port'],
-                database['host'],
-                database_settings_hash,
-                conn.server_version
-            )
-            packets.append(packet)
+            packet.append(collector)
 
         cur.close()
         conn.close()
 
-        print(len(packets))
+        print(packet)
