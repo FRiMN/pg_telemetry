@@ -100,13 +100,13 @@ $sum(xact\_rollback)$
 
 #### TPS (количество транзакций в секунду)
 
-В таблицах *pg_stat_database* и *pg_stat_statements*
+В таблице *pg_stat_database*
 
 $sum(xact\_commit + xact\_rollback)​$
 
 #### QPS (количество запросов в секунду)
 
-В таблицах *pg_stat_database* и *pg_stat_statements*
+В таблице *pg_stat_statements*
 
 $sum(calls)$
 
