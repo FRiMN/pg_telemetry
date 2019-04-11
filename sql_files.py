@@ -24,10 +24,15 @@ class Sql(object):
     __sql = None
     file_path = None
     column_name = None
+    store_type = None
 
     def __init__(self, file_path):
         self.file_path = file_path
-        self.column_name = file_path.split('/')[-1].split('.')[0]
+        file_name = file_path.split('/')[-1]
+        dot_splitted_file_name = file_name.split('.')
+        self.column_name = dot_splitted_file_name[0]
+        if len(dot_splitted_file_name) > 2:
+            self.store_type = dot_splitted_file_name[-2]
 
     @property
     def sql(self):

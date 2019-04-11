@@ -2,11 +2,11 @@ import os
 from os import environ as env
 
 import psycopg2
-from clickhouse_driver import Client
 from dotenv import load_dotenv
 
 from collectors import SqlCollector, DtCollector, TsCollector, DBNameCollector, DBPortCollector, DBHostCollector
 from sql_files import SqlFiles
+from store import Store
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
@@ -22,46 +22,14 @@ databases = (
 )
 
 
-class Store(object):
-    client = None
-
-    def __init__(self, host):
-        self.client = Client(host=host)
-        self._prepare_database()
-        self._prepare_rawdata_table()
-
-    def _prepare_database(self):
-        sql = "CREATE DATABASE IF NOT EXISTS pg_telemetry"
-        return self.client.execute(sql)
-
-    def _prepare_rawdata_table(self):
-        sql = """CREATE TABLE IF NOT EXISTS pg_telemetry.raw_data
-        (
-            dt                  Date,
-            ts                  DateTime,
-            dbname              String,
-            dbhost              String,
-            dbport              UInt16,
-            dbversion           String,
-            settings_hash       String,
-            pg_database_size    UInt64
-        ) ENGINE = MergeTree()
-        PARTITION BY toYYYYMM(dt)
-        ORDER BY (ts, dbname, dbhost, dbport)
-        """
-        return self.client.execute(sql)
-
-
 if __name__ == '__main__':
     sql_files = SqlFiles(basedir)
     sqls = sql_files.get_sqls()
 
     store = Store('localhost')
 
-    # print([sql.column_name for sql in sqls])
-
     for database in databases:
-        packet = [
+        collectors = [
             DtCollector(),
             TsCollector(),
             DBNameCollector(database['dbname']),
@@ -75,20 +43,16 @@ if __name__ == '__main__':
 
         for sql in sqls:
             collector = SqlCollector(sql, cur, database['dbname'])
-            packet.append(collector)
+            collectors.append(collector)
 
-        # print(packet)
+        # print(collectors)
 
-        for collector in packet:
+        for collector in collectors:
             collector.collect()
 
-        print(packet)
+        print(collectors)
 
         cur.close()
         conn.close()
 
-        store.client.execute("""
-        INSERT INTO pg_telemetry.raw_data
-        ({}) VALUES
-        """.format(','.join([c.column_name for c in packet])),
-        [[c.value for c in packet]])
+        store.insert(collectors)

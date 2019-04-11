@@ -1,12 +1,16 @@
 from datetime import datetime, date
 
+from sql_files import Sql
+
 
 class Collector(object):
     """ Base collector class """
     column_name = None
     value = None
+    store_type = 'String'
 
     def collect(self):
+        # TODO: Переделать в property на value
         raise NotImplementedError
 
     def __repr__(self):
@@ -21,6 +25,7 @@ class Collector(object):
 class TsCollector(Collector):
     """ Collector return now datetime """
     column_name = 'ts'
+    store_type = 'DateTime'
 
     def collect(self):
         self.value = datetime.now()
@@ -29,6 +34,7 @@ class TsCollector(Collector):
 class DtCollector(Collector):
     """ Collector return today date """
     column_name = 'dt'
+    store_type = 'Date'
 
     def collect(self):
         self.value = date.today()
@@ -48,6 +54,7 @@ class DBNameCollector(DumbCollector):
 
 class DBPortCollector(DumbCollector):
     column_name = 'dbport'
+    store_type = 'UInt16'
 
 
 class DBHostCollector(DumbCollector):
@@ -59,11 +66,13 @@ class DBVersionCollector(DumbCollector):
 
 
 class SqlCollector(Collector):
-    def __init__(self, sql, cursor, dbname):
+    def __init__(self, sql: Sql, cursor, dbname: str):
         self.sql = sql.sql
         self.cursor = cursor
         self.dbname = dbname
         self.column_name = sql.column_name
+        if sql.store_type:
+            self.store_type = sql.store_type
 
     def collect(self):
         if self.sql and self.cursor:
