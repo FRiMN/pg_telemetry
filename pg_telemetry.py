@@ -16,8 +16,8 @@ databases = (
     {
         'dbname': env.get('DBNAME'),
         'user': env.get('DBUSER'),
-        'host': 'localhost',
-        'port': 5432
+        'host': env.get('DBHOST'),
+        'port': env.get('DBPORT')
     },
 )
 
