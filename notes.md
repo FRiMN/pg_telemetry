@@ -25,6 +25,8 @@
 
 Данные поступают в очередь. По завершении операции для каждой базы очередь отправляется в хранилище (ClickHouse).
 
+Не стоит хранить тип данных (а на самом деле точность) вместе с sql.
+
 ## Типы снимаемых метрик
 
 Снимаются через определенные промежутки времени
@@ -32,7 +34,7 @@
 1. С одного поля или агрегат
 2. ~~С целой таблицы~~
 
-Промежутки времени свои для каждой метрики
+~~Промежутки времени свои для каждой метрики~~
 
 ## Хранилище
 
@@ -61,7 +63,7 @@ ORDER BY (path, ts)
 
 ## Снимаемые метрики
 
-Обязательно включить *pg_stat_statements*.[^y1]
+Обязательно включить *pg_stat_statements*.[^y1][^pg_s]
 
 ### Хэш настроек
 
@@ -207,4 +209,5 @@ pg_relation_size(), pg_total_relation_size()
 [^sc]: [The Statistics Collector](http://bit.do/stats_collector)
 
 [^datadoghq]: [Emily Chang. Key metrics for PostgreSQL monitoring. DataDog Blog, 15.12.2017](https://www.datadoghq.com/blog/postgresql-monitoring/)
+[^pg_s]: [Документация Postgresql. postgrespro.ru](https://postgrespro.ru/docs/postgresql/9.6/pgstatstatements)
 
