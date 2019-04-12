@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""
+Version: 0.1
+"""
+
 import os
 from os import environ as env
 
