@@ -17,16 +17,25 @@ databases = (
         'dbname': env.get('DBNAME'),
         'user': env.get('DBUSER'),
         'host': env.get('DBHOST'),
-        'port': env.get('DBPORT')
+        'port': env.get('DBPORT'),
+        'password': env.get('DBPASSWORD')
     },
 )
+
+ch_settings = {
+    'host'       : env.get('CHHOST'),
+    'port'       : env.get('CHPORT'),
+    'password'   : env.get('CHPASSWORD', ''),
+    'client_name': 'pg_telemetry',
+    'compression': True
+}
 
 
 if __name__ == '__main__':
     sql_files = SqlFiles(basedir)
     sqls = sql_files.get_sqls()
 
-    store = Store('localhost')
+    store = Store(**ch_settings)
 
     for database in databases:
         collectors = [

@@ -5,8 +5,8 @@ class Store(object):
     """ Класс хранилища метрик. На текущий момент только ClickHouse """
     client = None
 
-    def __init__(self, host):
-        self.client = Client(host=host)
+    def __init__(self, **settings):
+        self.client = Client(**settings)
         self._prepare_database()
         self._prepare_rawdata_table()
         self._prepare_views()
