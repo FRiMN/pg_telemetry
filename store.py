@@ -9,7 +9,6 @@ class Store(object):
         self.client = Client(**settings)
         self._prepare_database()
         self._prepare_rawdata_table()
-        self._prepare_views()
 
     def _prepare_database(self):
         sql = "CREATE DATABASE IF NOT EXISTS pg_telemetry"
@@ -102,4 +101,6 @@ class Store(object):
             ({}) VALUES
         """.format(','.join(columns))
 
-        return self.client.execute(sql, [values])
+        ret = self.client.execute(sql, [values])
+        self._prepare_views()
+        return ret
