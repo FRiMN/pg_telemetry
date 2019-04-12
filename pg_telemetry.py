@@ -23,9 +23,10 @@ databases = (
 )
 
 ch_settings = {
-    'host'       : env.get('CHHOST'),
-    'port'       : env.get('CHPORT'),
+    'host'       : env.get('CHHOST', 'localhost'),
+    'port'       : env.get('CHPORT', 9000),
     'password'   : env.get('CHPASSWORD', ''),
+    'user'       : env.get('CHUSER', 'default'),
     'client_name': 'pg_telemetry',
     'compression': True
 }
