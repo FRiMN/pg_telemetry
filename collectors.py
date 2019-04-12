@@ -1,3 +1,4 @@
+import socket
 from datetime import datetime, date
 
 from sql_files import Sql
@@ -59,6 +60,11 @@ class DBPortCollector(DumbCollector):
 
 class DBHostCollector(DumbCollector):
     column_name = 'dbhost'
+
+    def __init__(self, value):
+        super().__init__(value)
+        if self.value == 'localhost':
+            self.value = socket.gethostbyname(socket.gethostname())
 
 
 class DBVersionCollector(DumbCollector):
