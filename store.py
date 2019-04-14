@@ -59,15 +59,21 @@ class Store(object):
                 SELECT dt, ts, dbname, dbhost, dbport, 
                 divide(pg_stat_statements__sum_total_time, pg_stat_statements__sum_calls) AS response_time
                 FROM pg_telemetry.raw_data
-                ORDER BY ts DESC 
-        """),
+                ORDER BY ts DESC
+            """),
             ('perfomance', """CREATE VIEW pg_telemetry.perfomance AS
                 SELECT dt, ts, dbname, dbhost, dbport, 
                 runningDifference(pg_stat_database__xact_commit + pg_stat_database__xact_rollback)/runningDifference(ts) AS tps,
                 runningDifference(pg_stat_statements__sum_calls)/runningDifference(ts) AS qps
                 FROM pg_telemetry.raw_data
-                ORDER BY ts DESC 
-                """)
+                ORDER BY ts DESC
+            """),
+            ('rollbacks', """CREATE VIEW pg_telemetry.rollbacks AS
+                SELECT dt, ts, dbname, dbhost, dbport, 
+                runningDifference(pg_stat_database__xact_rollback)/runningDifference(ts) AS rps
+                FROM pg_telemetry.raw_data
+                ORDER BY ts DESC
+            """)
         ]
 
         for view_name, sql in sqls:
