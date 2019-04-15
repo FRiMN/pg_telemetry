@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Version: 0.1
+Version: 0.2
 """
 
 import os
@@ -60,11 +60,6 @@ if __name__ == '__main__':
         for sql in sqls:
             collector = SqlCollector(sql, cur, database['dbname'])
             collectors.append(collector)
-
-        # print(collectors)
-
-        for collector in collectors:
-            collector.collect()
 
         print(collectors)
 
