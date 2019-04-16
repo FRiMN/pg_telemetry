@@ -10,7 +10,6 @@ from os import environ as env
 import psycopg2
 from dotenv import load_dotenv
 
-from collectors import SqlCollector, DtCollector, TsCollector, DBNameCollector, DBPortCollector, DBHostCollector
 from sql_files import SqlFiles
 from store import Store
 
@@ -42,28 +41,34 @@ if __name__ == '__main__':
     sql_files = SqlFiles(basedir)
     sqls = sql_files.get_sqls()
 
-    store = Store(**ch_settings)
-
     for database in databases:
-        collectors = [
-            DtCollector(),
-            TsCollector(),
-            DBNameCollector(database['dbname']),
-            DBPortCollector(database['port']),
-            DBHostCollector(database['host']),
-            # DBVersionCollector(),
-        ]
-
+        # collectors = [
+        #     DtCollector(),
+        #     TsCollector(),
+        #     DBNameCollector(database['dbname']),
+        #     DBPortCollector(database['port']),
+        #     DBHostCollector(database['host']),
+        #     # DBVersionCollector(),
+        # ]
+        #
         conn = psycopg2.connect(**database)
-        cur = conn.cursor()
+        # cur = conn.cursor()
+        #
+        # for sql in sqls:
+        #     collector = SqlCollector(sql, cur, database['dbname'])
+        #     collectors.append(collector)
+        #
+        # print(collectors)
+        #
+        # cur.close()
 
-        for sql in sqls:
-            collector = SqlCollector(sql, cur, database['dbname'])
-            collectors.append(collector)
+        store = Store(ch_settings, conn, database)
 
-        print(collectors)
+        for collector in store.collectors:
+            collector.get_data()
+            # for key, val in collector.items():
+            #     print(key, val)
 
-        cur.close()
         conn.close()
 
-        store.insert(collectors)
+        # store.insert(collectors)

@@ -1,35 +1,47 @@
 from clickhouse_driver import Client
 
+from collectors_new import PgStatStatementsCollector
+
 
 class Store(object):
     """ Класс хранилища метрик. На текущий момент только ClickHouse """
     client = None
+    collectors = tuple()
 
-    def __init__(self, **settings):
-        self.client = Client(**settings)
-        self._prepare_database()
-        self._prepare_rawdata_table()
+    def __init__(self, client_settings, pg_connection, pg_meta):
+        self.client = Client(**client_settings)
+        self.pg_connection = pg_connection
+        self._set_collectors(pg_meta)
+        self._prepare_database()    # TODO: Запускать отдельно по ключу
+        # self._prepare_rawdata_table()
+
+    def _set_collectors(self, pg_meta):
+        self.collectors = (
+            # MetaCollector(pg_meta),
+            PgStatStatementsCollector(pg_connection=self.pg_connection, **pg_meta),
+            # PgStatDatabaseCollector()
+        )
 
     def _prepare_database(self):
         sql = "CREATE DATABASE IF NOT EXISTS pg_telemetry"
         return self.client.execute(sql)
 
-    def _prepare_rawdata_table(self):
-        sql = """CREATE TABLE IF NOT EXISTS pg_telemetry.raw_data
-        (
-            dt                  Date,
-            ts                  DateTime,
-            dbname              String,
-            dbhost              String,
-            dbport              UInt16
-        ) ENGINE = MergeTree()
-        PARTITION BY toYYYYMM(dt)
-        ORDER BY (ts, dbname, dbhost, dbport)
-        """
-        return self.client.execute(sql)
+    # def _prepare_rawdata_table(self):
+    #     sql = """CREATE TABLE IF NOT EXISTS pg_telemetry.raw_data
+    #     (
+    #         dt                  Date,
+    #         ts                  DateTime,
+    #         dbname              String,
+    #         dbhost              String,
+    #         dbport              UInt16
+    #     ) ENGINE = MergeTree()
+    #     PARTITION BY toYYYYMM(dt)
+    #     ORDER BY (ts, dbname, dbhost, dbport)
+    #     """
+    #     return self.client.execute(sql)
 
-    def _get_exists_columns(self):
-        sql = "DESC TABLE pg_telemetry.raw_data"
+    def _get_exists_columns(self, table_name):
+        sql = "DESC TABLE pg_telemetry.{}".format(table_name)
         ret = self.client.execute(sql)
         return [x[0] for x in ret]
 
@@ -38,17 +50,17 @@ class Store(object):
         ret = self.client.execute(sql)
         return [x[0] for x in ret]
 
-    def _prepare_rawdata_columns(self, columns):
-        exist_columns = self._get_exists_columns()
-        print(exist_columns)
-
-        for column, column_type in columns:
-            if column not in exist_columns:
-                sql = """ALTER TABLE pg_telemetry.raw_data 
-                ADD COLUMN {} {}""".format(column, column_type)
-                print(sql)
-
-                self.client.execute(sql)
+    # def _prepare_rawdata_columns(self, columns):
+    #     exist_columns = self._get_exists_columns()
+    #     print(exist_columns)
+    #
+    #     for column, column_type in columns:
+    #         if column not in exist_columns:
+    #             sql = """ALTER TABLE pg_telemetry.raw_data
+    #             ADD COLUMN {} {}""".format(column, column_type)
+    #             print(sql)
+    #
+    #             self.client.execute(sql)
 
     def _prepare_views(self):
         exist_tables = self._get_exists_tables()
@@ -110,3 +122,6 @@ class Store(object):
         ret = self.client.execute(sql, [values])
         self._prepare_views()
         return ret
+
+    # def send_to_store(self):
+    #     for collector in self.collectors:

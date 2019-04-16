@@ -91,3 +91,11 @@ class SqlCollector(Collector):
         if self._value is None:
             self._collect()
         return self._value
+
+
+class SqlStatementsCollector(SqlCollector):
+    def __init__(self, cursor, dbname: str):
+        self.sql = ""
+        self.cursor = cursor
+        self.dbname = dbname
+        self.column_name = ''
