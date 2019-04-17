@@ -8,10 +8,11 @@ import os
 from os import environ as env
 
 import psycopg2
+from clickhouse_driver import Client
 from dotenv import load_dotenv
 
+from collectors_new import PgStatStatementsCollector, PgStatDatabaseCollector
 from sql_files import SqlFiles
-from store import Store
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
@@ -42,33 +43,16 @@ if __name__ == '__main__':
     sqls = sql_files.get_sqls()
 
     for database in databases:
-        # collectors = [
-        #     DtCollector(),
-        #     TsCollector(),
-        #     DBNameCollector(database['dbname']),
-        #     DBPortCollector(database['port']),
-        #     DBHostCollector(database['host']),
-        #     # DBVersionCollector(),
-        # ]
-        #
         conn = psycopg2.connect(**database)
-        # cur = conn.cursor()
-        #
-        # for sql in sqls:
-        #     collector = SqlCollector(sql, cur, database['dbname'])
-        #     collectors.append(collector)
-        #
-        # print(collectors)
-        #
-        # cur.close()
+        client = Client(**ch_settings)
 
-        store = Store(ch_settings, conn, database)
+        collectors = [
+            PgStatStatementsCollector(conn, client),
+            PgStatDatabaseCollector(conn, client)
+        ]
 
-        for collector in store.collectors:
-            collector.get_data()
-            # for key, val in collector.items():
-            #     print(key, val)
+        for collector in collectors:
+            collector.prepare_store()
+            collector.save_data_to_store()
 
         conn.close()
-
-        # store.insert(collectors)
