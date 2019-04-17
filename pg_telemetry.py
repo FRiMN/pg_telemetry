@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Version: 0.3
+Version: 0.4
 """
 
 import os
@@ -12,6 +12,7 @@ from clickhouse_driver import Client
 from dotenv import load_dotenv
 
 from collectors import PgStatStatementsCollector, PgStatDatabaseCollector
+from views import ResponseTimeView, RollbacksView
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
@@ -38,9 +39,10 @@ ch_settings = {
 
 
 if __name__ == '__main__':
+    client = Client(**ch_settings)
+
     for database in databases:
         conn = psycopg2.connect(**database)
-        client = Client(**ch_settings)
 
         collectors = [
             PgStatStatementsCollector(conn, client),
@@ -52,3 +54,11 @@ if __name__ == '__main__':
             collector.save_data_to_store()
 
         conn.close()
+
+    views = [
+        ResponseTimeView(client),
+        RollbacksView(client),
+        # PerfomanceView(client)
+    ]
+    for view in views:
+        view.create()

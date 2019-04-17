@@ -1,3 +1,4 @@
+import socket
 from datetime import datetime, date
 
 from psycopg2.extras import DictCursor
@@ -13,7 +14,7 @@ class Collector(object):
         self.store_client = store_client
 
         info = self.cursor.connection.info
-        self.dbname = info.dbname
+        self.dbname = socket.gethostbyname(socket.gethostname()) if info.dbname == 'localhost' else info.dbname
         self.dbhost = info.host
         self.dbport = info.port
         self.dbversion = info.server_version
