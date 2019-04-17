@@ -1,101 +1,179 @@
-import socket
 from datetime import datetime, date
 
-from sql_files import Sql
+from psycopg2.extras import DictCursor
 
 
 class Collector(object):
-    """ Base collector class """
-    column_name = None
-    _value = None
-    store_type = 'String'
+    store_tablename = None
+    data_sql = None
+    extra_column_types = tuple()
 
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, pg_connection, store_client):
+        self.cursor = pg_connection.cursor(cursor_factory=DictCursor)
+        self.store_client = store_client
+
+        info = self.cursor.connection.info
+        self.dbname = info.dbname
+        self.dbhost = info.host
+        self.dbport = info.port
+        self.dbversion = info.server_version
+        self.__dbid = None
 
     @property
-    def value(self):
-        return self._value
+    def column_types(self):
+        return (
+            ('dt', 'Date'),
+            ('ts', 'DateTime'),
+            ('dbname', 'String'),
+            ('dbhost', 'String'),
+            ('dbport', 'UInt16'),
+            ('dbsettings_hash', 'String')
+        ) + self.extra_column_types
 
-    @value.setter
-    def value(self, value):
-        self._value = value
+    @property
+    def dbid(self):
+        if not self.__dbid:
+            self.cursor.execute("select datid from pg_stat_database where datname = %s", (self.dbname,))
+            self.__dbid = self.cursor.fetchone()['datid']
 
-    def __repr__(self):
-        return '<{}: {}={}{}>'.format(
-            self.__class__.__name__,
-            self.column_name,
-            type(self.value),
-            self.value
-        )
+        return self.__dbid
 
+    @property
+    def dbsettings_hash(self):
+        sql = """
+        SELECT md5(
+            CAST(array_agg(
+                CAST(f.setting as text) order by f.name
+            ) as text)
+        ) as hash
+        FROM pg_settings f
+        WHERE name != 'application_name';
+        """
+        self.cursor.execute(sql)
+        return self.cursor.fetchone()['hash']
 
-class TsCollector(Collector):
-    """ Collector return now datetime """
-    column_name = 'ts'
-    store_type = 'DateTime'
+    def _get_exists_tables(self):
+        sql = "SHOW TABLES FROM pg_telemetry"
+        ret = self.store_client.execute(sql)
+        return [x[0] for x in ret]
 
-    def __init__(self):
-        self.value = datetime.now()
+    def prepare_store(self):
+        exist_tables = self._get_exists_tables()
+        print(exist_tables, self.store_tablename)
+        column_defenition = ['{} {}'.format(x[0], x[1]) for x in self.column_types]
+        if self.store_tablename not in exist_tables:
+            sql = """CREATE TABLE pg_telemetry.{}
+                 (
+                     {}
+                 ) ENGINE = MergeTree()
+                 PARTITION BY toYYYYMM(dt)
+                 ORDER BY (ts, dbname, dbhost, dbport)
+                 """.format(self.store_tablename, ','.join(column_defenition))
+            print(sql)
+            return self.store_client.execute(sql)
 
+    def get_data(self):
+        self.cursor.execute(self.data_sql, (self.dbid,))
+        data = self.cursor.fetchall()
+        return data
 
-class DtCollector(Collector):
-    """ Collector return today date """
-    column_name = 'dt'
-    store_type = 'Date'
+    def clean_data(self, data):
+        cleaned_data = []
+        meta_data = {
+            'ts'    : datetime.now(),
+            'dt'    : date.today(),
+            'dbname': self.dbname,
+            'dbhost': self.dbhost,
+            'dbport': self.dbport,
+            'dbsettings_hash': self.dbsettings_hash
+        }
+        for d in data:
+            rd = dict(**d)
+            rd.update(meta_data)
+            cleaned_data.append(rd)
+        return cleaned_data
 
-    def __init__(self):
-        self.value = date.today()
+    def save_data_to_store(self):
+        data = self.clean_data(self.get_data())
+        columns = [x[0] for x in self.column_types]
+        sql = """
+                    INSERT INTO pg_telemetry.{}
+                    ({}) VALUES
+                """.format(self.store_tablename, ','.join(columns))
 
-
-class DBNameCollector(Collector):
-    column_name = 'dbname'
-
-
-class DBPortCollector(Collector):
-    column_name = 'dbport'
-    store_type = 'UInt16'
-
-
-class DBHostCollector(Collector):
-    column_name = 'dbhost'
-
-    def __init__(self, value):
-        super().__init__(value)
-        if self.value == 'localhost':
-            self.value = socket.gethostbyname(socket.gethostname())
-
-
-class DBVersionCollector(Collector):
-    column_name = 'dbversion'
-
-
-class SqlCollector(Collector):
-    def __init__(self, sql: Sql, cursor, dbname: str):
-        self.sql = sql.sql
-        self.cursor = cursor
-        self.dbname = dbname
-        self.column_name = sql.column_name
-        if sql.store_type:
-            self.store_type = sql.store_type
-
-    def _collect(self):
-        if self.sql and self.cursor:
-            sql = self.sql.replace('$1', '%s')
-            self.cursor.execute(sql, (self.dbname,))
-            self.value = self.cursor.fetchone()[0]
-            # return self.value
-
-    @Collector.value.getter
-    def value(self):
-        if self._value is None:
-            self._collect()
-        return self._value
+        return self.store_client.execute(sql, data)
 
 
-class SqlStatementsCollector(SqlCollector):
-    def __init__(self, cursor, dbname: str):
-        self.sql = ""
-        self.cursor = cursor
-        self.dbname = dbname
-        self.column_name = ''
+class PgStatStatementsCollector(Collector):
+    store_tablename = 'pg_stat_statements'
+    extra_column_types = (
+        ('userid', 'UInt32'),
+        # 'dbid',
+        ('queryid', 'UInt32'),
+        ('query', 'String'),
+        ('calls', 'UInt64'),
+        ('total_time', 'Float32'),
+        ('min_time', 'Float32'),
+        ('max_time', 'Float32'),
+        ('mean_time', 'Float32'),
+        ('stddev_time', 'Float32'),
+        ('rows', 'UInt64'),
+        ('shared_blks_hit', 'UInt32'),
+        ('shared_blks_read', 'UInt32'),
+        ('shared_blks_dirtied', 'UInt32'),
+        ('shared_blks_written', 'UInt32'),
+        ('local_blks_hit', 'UInt32'),
+        ('local_blks_read', 'UInt32'),
+        ('local_blks_dirtied', 'UInt32'),
+        ('local_blks_written', 'UInt32'),
+        ('temp_blks_read', 'UInt32'),
+        ('temp_blks_written', 'UInt32'),
+        ('blk_read_time', 'Float32'),
+        ('blk_write_time', 'Float32')
+    )
+
+    data_sql = """
+        SELECT *
+        FROM pg_stat_statements
+        WHERE dbid = %s;
+    """
+
+    def clean_data(self, data):
+        data = super().clean_data(data)
+
+        for d in data:
+            if d['queryid'] is None:
+                d['queryid'] = 0
+
+        return data
+
+
+class PgStatDatabaseCollector(Collector):
+    store_tablename = 'pg_stat_database'
+    extra_column_types = (
+        # ('datid', ''),
+        # ('datname', ''),
+        ('numbackends', 'UInt8'),
+        ('xact_commit', 'UInt32'),
+        ('xact_rollback', 'UInt32'),
+        ('blks_read', 'UInt64'),
+        ('blks_hit', 'UInt64'),
+        ('tup_returned', 'UInt64'),
+        ('tup_fetched', 'UInt64'),
+        ('tup_inserted', 'UInt64'),
+        ('tup_updated', 'UInt64'),
+        ('tup_deleted', 'UInt64'),
+        ('conflicts', 'UInt32'),
+        ('temp_files', 'UInt32'),
+        ('temp_bytes', 'UInt64'),
+        ('deadlocks', 'UInt32'),
+        ('blk_read_time', 'Float32'),
+        ('blk_write_time', 'Float32'),
+        ('stats_reset', 'DateTime')
+    )
+
+    data_sql = """
+        select *
+        from pg_stat_database
+        where datid = %s;
+    """

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Version: 0.2
+Version: 0.3
 """
 
 import os
@@ -11,8 +11,7 @@ import psycopg2
 from clickhouse_driver import Client
 from dotenv import load_dotenv
 
-from collectors_new import PgStatStatementsCollector, PgStatDatabaseCollector
-from sql_files import SqlFiles
+from collectors import PgStatStatementsCollector, PgStatDatabaseCollector
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
@@ -39,9 +38,6 @@ ch_settings = {
 
 
 if __name__ == '__main__':
-    sql_files = SqlFiles(basedir)
-    sqls = sql_files.get_sqls()
-
     for database in databases:
         conn = psycopg2.connect(**database)
         client = Client(**ch_settings)
