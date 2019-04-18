@@ -36,6 +36,7 @@ class ResponseTimeView(View):
         FROM pg_telemetry.pg_stat_statements
     """
 
+
 class RollbacksView(View):
     table_name = 'rollbacks'
     sql_select = """
@@ -43,6 +44,7 @@ class RollbacksView(View):
             runningDifference(xact_rollback)/runningDifference(ts) AS rps
         FROM pg_telemetry.pg_stat_database
     """
+
 
 class PerfomanceView(View):
     table_name = 'perfomance'
@@ -63,6 +65,7 @@ class PerfomanceView(View):
             )
         USING {mc}
     """
+
 
 class QueryPerfomanceView(View):
     table_name = 'query_perfomance'
