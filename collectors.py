@@ -117,7 +117,7 @@ class PgStatStatementsCollector(Collector):
         # ('mean_time', 'Float32'),
         # ('stddev_time', 'Float32'),
         ('rows', 'UInt64'),
-        ('shared_blks_hit', 'UInt32'),
+        ('shared_blks_hit', 'UInt64'),
         ('shared_blks_read', 'UInt32'),
         ('shared_blks_dirtied', 'UInt32'),
         ('shared_blks_written', 'UInt32'),
