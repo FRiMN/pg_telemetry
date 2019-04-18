@@ -80,3 +80,24 @@ class QueryPerfomanceView(View):
         FROM pg_telemetry.pg_stat_statements
         GROUP BY {mc}, query, queryid
     """ # FIXME: Работает не правильно, runningDifference ходит по разным query
+
+
+class CacheHitRatioView(View):
+    table_name = 'cache_hit_ratio'
+    sql_select = """
+        SELECT {mc},
+            -- show cache hit ratio, values closer to 100 are better
+            round(100 * sum(blks_hit) / sum(blks_hit + blks_read), 3) as cache_hit_ratio
+        FROM pg_telemetry.pg_stat_database
+        GROUP BY {mc}
+    """
+
+class FetchedRowsRatio(View):
+    table_name = 'fetched_rows_ratio'
+    sql_select = """
+        SELECT {mc},
+            -- show fetched rows ratio, values closer to 100 are better
+            round(100 * sum(tup_fetched) / sum(tup_fetched + tup_returned), 3) as fetched_ratio
+        FROM pg_telemetry.pg_stat_database
+        GROUP BY {mc}
+    """

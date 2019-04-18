@@ -60,6 +60,8 @@ if __name__ == '__main__':
         RollbacksView(client),
         PerfomanceView(client),
         # QueryPerfomanceView(client)
+        CacheHitRatioView(client),
+        FetchedRowsRatio(client),
     ]
     for view in views:
         view.create()
