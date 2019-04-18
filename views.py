@@ -22,7 +22,6 @@ class View(object):
         if self.table_name not in self._get_exists_tables():
             sql_select = self.sql_select.format(mc=','.join(self.meta_columns))
             sql = self.sql_template.format(self.table_name, sql_select)
-            print(sql)
             return self.client.execute(sql)
 
 

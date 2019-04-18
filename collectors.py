@@ -60,7 +60,6 @@ class Collector(object):
 
     def prepare_store(self):
         exist_tables = self._get_exists_tables()
-        print(exist_tables, self.store_tablename)
         column_defenition = ['{} {}'.format(x[0], x[1]) for x in self.column_types]
         if self.store_tablename not in exist_tables:
             sql = """CREATE TABLE pg_telemetry.{}
@@ -70,7 +69,6 @@ class Collector(object):
                  PARTITION BY toYYYYMM(dt)
                  ORDER BY (ts, dbname, dbhost, dbport)
                  """.format(self.store_tablename, ','.join(column_defenition))
-            print(sql)
             return self.store_client.execute(sql)
 
     def get_data(self):
