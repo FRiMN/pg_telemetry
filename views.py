@@ -20,7 +20,7 @@ class View(object):
 
     def create(self):
         if self.table_name not in self._get_exists_tables():
-            sql_select = self.sql_select.format(','.join(self.meta_columns))
+            sql_select = self.sql_select.format(mc=','.join(self.meta_columns))
             sql = self.sql_template.format(self.table_name, sql_select)
             print(sql)
             return self.client.execute(sql)
@@ -29,7 +29,7 @@ class View(object):
 class ResponseTimeView(View):
     table_name = 'response_time'
     sql_select = """
-        SELECT {},
+        SELECT {mc},
             queryid,
             query,
             divide(total_time, calls) AS response_time
@@ -39,7 +39,7 @@ class ResponseTimeView(View):
 class RollbacksView(View):
     table_name = 'rollbacks'
     sql_select = """
-        SELECT {},
+        SELECT {mc},
             runningDifference(xact_rollback)/runningDifference(ts) AS rps
         FROM pg_telemetry.pg_stat_database
     """
@@ -47,19 +47,33 @@ class RollbacksView(View):
 class PerfomanceView(View):
     table_name = 'perfomance'
     sql_select = """
-        SELECT {},
-        ( 
-            SELECT
-                runningDifference(sum(xact_commit + xact_rollback))/runningDifference(ts) AS tps
-            FROM pg_telemetry.pg_stat_database
-            GROUP BY ts
-        ),
-        (
-            SELECT
-                runningDifference(sum(calls))/runningDifference(ts) AS qps
-            FROM pg_telemetry.pg_stat_statements
-            GROUP BY ts
-        )
+        SELECT {mc},
+            tps,
+            qps
+        FROM (
+                SELECT {mc}, 
+                    runningDifference(sum(calls)) / runningDifference(ts) AS qps
+                FROM pg_telemetry.pg_stat_statements
+                GROUP BY {mc}
+             )
+        ANY FULL JOIN (
+                SELECT {mc}, 
+                    runningDifference(xact_commit + xact_rollback) / runningDifference(ts) AS tps
+                FROM pg_telemetry.pg_stat_database
+            )
+        USING {mc}
+    """
+
+class QueryPerfomanceView(View):
+    table_name = 'query_perfomance'
+    sql_select = """
+        SELECT {mc}, 
+            substringUTF8(
+                replaceRegexpAll(query, '[\n\t ]+', ' '), 1, 100
+            ) AS query_sample,
+            queryid,
+            anyHeavy(userid),
+            runningDifference(sum(calls)) / runningDifference(ts) AS qps
         FROM pg_telemetry.pg_stat_statements
-        GROUP BY ts
-    """ # FIXME: DB::Exception: Scalar subquery returned more than one row.
+        GROUP BY {mc}, query, queryid
+    """

@@ -12,7 +12,7 @@ from clickhouse_driver import Client
 from dotenv import load_dotenv
 
 from collectors import PgStatStatementsCollector, PgStatDatabaseCollector
-from views import ResponseTimeView, RollbacksView
+from views import *
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
@@ -58,7 +58,8 @@ if __name__ == '__main__':
     views = [
         ResponseTimeView(client),
         RollbacksView(client),
-        # PerfomanceView(client)
+        PerfomanceView(client),
+        QueryPerfomanceView(client)
     ]
     for view in views:
         view.create()
