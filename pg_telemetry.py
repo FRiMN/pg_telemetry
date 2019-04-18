@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 """
-Version: 0.4
+Version: 0.5
 """
-
+import datetime
 import os
 from os import environ as env
+from threading import Timer
 
 import psycopg2
 from clickhouse_driver import Client
@@ -16,6 +17,8 @@ from views import *
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
+
+fetch_interval = float(env.get('FETCH_INTERVAL', 60))
 
 
 databases = (
@@ -37,31 +40,51 @@ ch_settings = {
     'compression': True
 }
 
+client = Client(**ch_settings)
+
+
+STORE_VIEWS_CREATED = False
+def make_store_views():
+    global STORE_VIEWS_CREATED
+    if not STORE_VIEWS_CREATED:
+        print('creating view')
+        views = [
+            ResponseTimeView(client),
+            RollbacksView(client),
+            PerformanceView(client),
+            # QueryPerfomanceView(client)
+            CacheHitRatioView(client),
+            FetchedRowsRatio(client),
+        ]
+        for view in views:
+            view.create()
+        STORE_VIEWS_CREATED = True
+
+
+def fetch_data(database):
+    conn = psycopg2.connect(**database)
+
+    collectors = [
+        PgStatStatementsCollector(conn, client),
+        PgStatDatabaseCollector(conn, client)
+    ]
+
+    for collector in collectors:
+        collector.prepare_store()
+        collector.save_data_to_store()
+
+    conn.close()
+
+
+def timed_task(database):
+    print(datetime.datetime.now())
+    t = Timer(fetch_interval, timed_task, [database])
+    t.start()
+    fetch_data(database)
+    make_store_views()
+
 
 if __name__ == '__main__':
-    client = Client(**ch_settings)
-
     for database in databases:
-        conn = psycopg2.connect(**database)
-
-        collectors = [
-            PgStatStatementsCollector(conn, client),
-            PgStatDatabaseCollector(conn, client)
-        ]
-
-        for collector in collectors:
-            collector.prepare_store()
-            collector.save_data_to_store()
-
-        conn.close()
-
-    views = [
-        ResponseTimeView(client),
-        RollbacksView(client),
-        PerformanceView(client),
-        # QueryPerfomanceView(client)
-        CacheHitRatioView(client),
-        FetchedRowsRatio(client),
-    ]
-    for view in views:
-        view.create()
+        t = Timer(0, timed_task, [database])
+        t.start()
