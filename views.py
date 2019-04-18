@@ -24,6 +24,11 @@ class View(object):
             sql = self.sql_template.format(self.table_name, sql_select)
             return self.client.execute(sql)
 
+    def drop(self):
+        if self.table_name in self._get_exists_tables():
+            sql = "DROP TABLE pg_telemetry.{}".format(self.table_name)
+            return self.client.execute(sql)
+
 
 class ResponseTimeView(View):
     table_name = 'response_time'

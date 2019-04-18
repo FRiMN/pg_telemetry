@@ -57,6 +57,7 @@ def make_store_views():
             FetchedRowsRatio(client),
         ]
         for view in views:
+            view.drop()
             view.create()
         STORE_VIEWS_CREATED = True
 
