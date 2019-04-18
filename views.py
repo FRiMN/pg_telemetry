@@ -46,8 +46,8 @@ class RollbacksView(View):
     """
 
 
-class PerfomanceView(View):
-    table_name = 'perfomance'
+class PerformanceView(View):
+    table_name = 'performance'
     sql_select = """
         SELECT {mc},
             tps,

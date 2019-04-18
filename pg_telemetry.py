@@ -58,7 +58,7 @@ if __name__ == '__main__':
     views = [
         ResponseTimeView(client),
         RollbacksView(client),
-        PerfomanceView(client),
+        PerformanceView(client),
         # QueryPerfomanceView(client)
         CacheHitRatioView(client),
         FetchedRowsRatio(client),
