@@ -59,7 +59,7 @@ if __name__ == '__main__':
         ResponseTimeView(client),
         RollbacksView(client),
         PerfomanceView(client),
-        QueryPerfomanceView(client)
+        # QueryPerfomanceView(client)
     ]
     for view in views:
         view.create()

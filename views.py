@@ -76,4 +76,4 @@ class QueryPerfomanceView(View):
             runningDifference(sum(calls)) / runningDifference(ts) AS qps
         FROM pg_telemetry.pg_stat_statements
         GROUP BY {mc}, query, queryid
-    """
+    """ # FIXME: Работает не правильно, runningDifference ходит по разным query
