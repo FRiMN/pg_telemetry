@@ -65,6 +65,14 @@ ORDER BY (path, ts)
 
 Обязательно включить *pg_stat_statements*.[^y1][^pg_s]
 
+Для *pg_buffercache*:
+
+```sql
+CREATE EXTENSION pg_buffercache;
+```
+
+
+
 ### Хэш настроек
 
 ```sql
@@ -212,3 +220,4 @@ pg_relation_size(), pg_total_relation_size()
 [^pg_s]: [PostgreSQL : Документация: 9.4: pg_stat_statements : Компания Postgres Professional](https://postgrespro.ru/docs/postgresql/9.4/pgstatstatements)
 [^pg_ms]: [PostgreSQL : Документация: 9.4: Сборщик статистики : Компания Postgres Professional](https://postgrespro.ru/docs/postgresql/9.4/monitoring-stats)
 
+[^zw]: [Записки угрюмого поднимателя пингвинов.: Работа с PostgreSQL: настройка и масштабирование](http://www.zaweel.ru/2016/07/postgresql_22.html#pg_buffercache) ([архив](http://archive.md/MRPUi))
