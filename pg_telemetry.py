@@ -3,7 +3,6 @@
 """
 Version: 0.5
 """
-import datetime
 import os
 from os import environ as env
 from threading import Timer
@@ -79,7 +78,6 @@ def fetch_data(database):
 
 
 def timed_task(database):
-    print(datetime.datetime.now())
     t = Timer(fetch_interval, timed_task, [database])
     t.start()
     fetch_data(database)
