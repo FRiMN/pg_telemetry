@@ -11,7 +11,8 @@ import psycopg2
 from clickhouse_driver import Client
 from dotenv import load_dotenv
 
-from collectors import PgStatStatementsCollector, PgStatDatabaseCollector, DatabaseSizeCollector
+from collectors import PgStatStatementsCollector, PgStatDatabaseCollector, DatabaseSizeCollector, \
+    PgStatActivityCollector
 from views import *
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -67,7 +68,8 @@ def fetch_data(database):
     collectors = [
         PgStatStatementsCollector(conn, client),
         PgStatDatabaseCollector(conn, client),
-        DatabaseSizeCollector(conn, client)
+        DatabaseSizeCollector(conn, client),
+        PgStatActivityCollector(conn, client)
     ]
 
     for collector in collectors:

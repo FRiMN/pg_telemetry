@@ -1,4 +1,5 @@
 import socket
+import time
 from datetime import datetime, date
 
 from psycopg2.extras import DictCursor
@@ -30,6 +31,14 @@ class Collector(object):
             ('dbport', 'UInt16'),
             ('dbsettings_hash', 'String')
         ) + self.extra_column_types
+
+    @property
+    def columns(self):
+        return [x[0] for x in self.column_types]
+
+    @property
+    def extra_columns(self):
+        return [x[0] for x in self.extra_column_types]
 
     @property
     def dbid(self):
@@ -72,7 +81,8 @@ class Collector(object):
             return self.store_client.execute(sql)
 
     def get_data(self):
-        self.cursor.execute(self.data_sql, (self.dbid,))
+        sql = self.data_sql.format(dbid=self.dbid, columns=','.join(self.extra_columns))
+        self.cursor.execute(sql)
         data = self.cursor.fetchall()
         return data
 
@@ -94,11 +104,10 @@ class Collector(object):
 
     def save_data_to_store(self):
         data = self.clean_data(self.get_data())
-        columns = [x[0] for x in self.column_types]
         sql = """
                     INSERT INTO pg_telemetry.{}
                     ({}) VALUES
-                """.format(self.store_tablename, ','.join(columns))
+                """.format(self.store_tablename, ','.join(self.columns))
 
         return self.store_client.execute(sql, data)
 
@@ -132,9 +141,9 @@ class PgStatStatementsCollector(Collector):
     )
 
     data_sql = """
-        SELECT *
+        SELECT {columns}
         FROM pg_stat_statements
-        WHERE dbid = %s;
+        WHERE dbid = {dbid};
     """
 
     def clean_data(self, data):
@@ -172,9 +181,9 @@ class PgStatDatabaseCollector(Collector):
     )
 
     data_sql = """
-        select *
+        select {columns}
         from pg_stat_database
-        where datid = %s;
+        where datid = {dbid};
     """
 
 
@@ -185,5 +194,52 @@ class DatabaseSizeCollector(Collector):
     )
 
     data_sql = """
-        select pg_database_size(%s) as size;
+        select pg_database_size({dbid}) as size;
     """
+
+
+class PgStatActivityCollector(Collector):
+    store_tablename = 'pg_stat_activity'
+    extra_column_types = (
+        ('usename', 'String'),
+        ('client_addr', 'String'),
+        ('backend_start', 'UInt32'),
+        ('xact_start', 'UInt32'),
+        ('query_start', 'UInt32'),
+        ('state_change', 'UInt32'),
+        ('waiting', 'Int8'),
+        ('state', 'String'),
+        ('query', 'String')
+    )
+
+    data_sql = """
+        select {columns}
+        from pg_stat_activity
+        where datid = {dbid};
+    """
+
+    def clean_data(self, data):
+        data = super().clean_data(data)
+
+        for d in data:
+            if d['client_addr'] is None:
+                d['client_addr'] = ''
+            if d['state'] is None:
+                d['state'] = ''
+
+            if d['waiting'] is None:
+                d['waiting'] = 2
+            else:
+                d['waiting'] = int(d['waiting'])
+
+            datetime_fields = ('backend_start', 'xact_start', 'query_start', 'state_change')
+            for field in datetime_fields:
+                if d[field] is None:
+                    d[field] = 0
+                else:
+                    d[field] = int(time.mktime(d[field].timetuple()))
+
+            for field in d.items():
+                if field[1] is None:
+                    print(field[0])
+        return data
