@@ -96,7 +96,8 @@ class CacheHitRatioView(View):
         GROUP BY {mc}
     """
 
-class FetchedRowsRatio(View):
+
+class FetchedRowsRatioView(View):
     table_name = 'fetched_rows_ratio'
     sql_select = """
         SELECT {mc},
