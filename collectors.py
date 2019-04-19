@@ -176,3 +176,14 @@ class PgStatDatabaseCollector(Collector):
         from pg_stat_database
         where datid = %s;
     """
+
+
+class DatabaseSizeCollector(Collector):
+    store_tablename = 'database_size'
+    extra_column_types = (
+        ('size', 'UInt64'),
+    )
+
+    data_sql = """
+        select pg_database_size(%s) as size;
+    """

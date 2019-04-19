@@ -12,7 +12,7 @@ import psycopg2
 from clickhouse_driver import Client
 from dotenv import load_dotenv
 
-from collectors import PgStatStatementsCollector, PgStatDatabaseCollector
+from collectors import PgStatStatementsCollector, PgStatDatabaseCollector, DatabaseSizeCollector
 from views import *
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -54,7 +54,7 @@ def make_store_views():
             PerformanceView(client),
             # QueryPerfomanceView(client)
             CacheHitRatioView(client),
-            FetchedRowsRatio(client),
+            FetchedRowsRatioView(client),
         ]
         for view in views:
             view.drop()
@@ -67,7 +67,8 @@ def fetch_data(database):
 
     collectors = [
         PgStatStatementsCollector(conn, client),
-        PgStatDatabaseCollector(conn, client)
+        PgStatDatabaseCollector(conn, client),
+        DatabaseSizeCollector(conn, client)
     ]
 
     for collector in collectors:
