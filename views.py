@@ -106,3 +106,18 @@ class FetchedRowsRatioView(View):
         FROM pg_telemetry.pg_stat_database
         GROUP BY {mc}
     """
+
+
+class TempFilesPgssView(View):
+    table_name = 'temp_files_pgss'
+    sql_select = """
+        SELECT {mc},
+            queryid,
+            calls,
+            (temp_blks_read + temp_blks_written) * 8192 as temp_io,
+            (temp_blks_written * 8192) / calls as temp_size_avg,
+            query
+        FROM pg_telemetry.pg_stat_statements
+        WHERE temp_blks_read + temp_blks_written > 0
+        ORDER BY (temp_blks_written / calls) DESC
+    """
