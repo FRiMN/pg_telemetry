@@ -121,3 +121,21 @@ class TempFilesPgssView(View):
         WHERE temp_blks_read + temp_blks_written > 0
         ORDER BY (temp_blks_written / calls) DESC
     """
+
+
+class RunningPgStatStatements(View):
+    """
+    NOTE: https://stackoverflow.com/questions/51856397/clickhouse-running-diff-with-grouping/51873915#51873915
+    """
+    table_name = 'running_pg_stat_statements'
+    sql_select = """
+        SELECT {mc},
+            queryid, 
+            runningDifference(calls) as delta_calls,
+            runningDifference(rows) as delta_rows,
+            runningDifference(total_time) as delta_total_time
+        from (
+            select * from pg_telemetry.pg_stat_statements 
+            order by queryid, ts
+        )
+    """

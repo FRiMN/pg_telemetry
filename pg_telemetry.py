@@ -55,6 +55,7 @@ def make_store_views():
             # QueryPerfomanceView(client)
             CacheHitRatioView(client),
             FetchedRowsRatioView(client),
+            RunningPgStatStatements(client)
         ]
         for view in views:
             view.drop()
