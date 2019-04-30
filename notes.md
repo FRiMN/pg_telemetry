@@ -216,7 +216,8 @@ pg_relation_size(), pg_total_relation_size()
 [^sql_lesovsky]: http://bit.do/lesovsky_sql
 [^sc]: [The Statistics Collector](http://bit.do/stats_collector)
 
-[^datadoghq]: [Emily Chang. Key metrics for PostgreSQL monitoring. DataDog Blog, 15.12.2017](https://www.datadoghq.com/blog/postgresql-monitoring/)
+[^datadoghq]: [Emily Chang. Key metrics for PostgreSQL monitoring. DataDog Blog, 2017](https://www.datadoghq.com/blog/postgresql-monitoring/)
+[^datadoghq_cs]: [Cheatsheet: PostgreSQL Monitoring. DataDog ^[pdf]^](https://lp.datadoghq.com/rs/875-UVY-685/images/PostgreSQL_cheatsheet.pdf)
 [^pg_s]: [PostgreSQL : Документация: 9.4: pg_stat_statements : Компания Postgres Professional](https://postgrespro.ru/docs/postgresql/9.4/pgstatstatements)
 [^pg_ms]: [PostgreSQL : Документация: 9.4: Сборщик статистики : Компания Postgres Professional](https://postgrespro.ru/docs/postgresql/9.4/monitoring-stats)
 
